@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Debt & Cicilan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    input, button { padding: 5px; margin: 2px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Edit Debt & Cicilan</h1>
+  <div class="form-group">
+    <label>Nama Aplikasi:</label>
+    <span id="namaAplikasi"></span>
+  </div>
+  <div class="form-group">
+    <input type="number" id="jumlahPinjaman" placeholder="Jumlah Pinjaman" />
+  </div>
+  <div class="form-group">
+    <input type="number" id="jumlahTenor" placeholder="Jumlah Tenor" />
+  </div>
+  <button onclick="updateDebt()">Simpan Debt</button>
+  <a href="index.html"><button>Kembali</button></a>
+
+  <h2>Cicilan</h2>
+  <div class="form-group">
+    <input type="date" id="cicilanTanggal" />
+    <input type="number" id="cicilanJumlah" placeholder="Jumlah Cicilan" />
+    <button onclick="addCicilan()">Tambah Cicilan</button>
+  </div>
+  <table id="cicilanTable">
+    <tr><th>Tanggal</th><th>Jumlah</th><th>Aksi</th></tr>
+  </table>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const nama = urlParams.get('nama');
+    let debt = null;
+
+    async function loadDebt() {
+      const res = await fetch('/api/debts');
+      const debts = await res.json();
+      debt = debts.find(d => d.namaAplikasi === nama);
+      if (!debt) {
+        alert('Debt tidak ditemukan');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      document.getElementById('namaAplikasi').textContent = debt.namaAplikasi;
+      document.getElementById('jumlahPinjaman').value = debt.jumlahPinjaman;
+      document.getElementById('jumlahTenor').value = debt.jumlahTenor;
+
+      loadCicilan();
+    }
+
+    function loadCicilan() {
+      const table = document.getElementById('cicilanTable');
+      table.innerHTML = '<tr><th>Tanggal</th><th>Jumlah</th><th>Aksi</th></tr>';
+      debt.cicilan.forEach((c, i) => {
+        const row = table.insertRow();
+        row.insertCell(0).textContent = c.tanggal;
+        row.insertCell(1).textContent = c.jumlah.toLocaleString();
+        row.insertCell(2).innerHTML = `
+          <button onclick="editCicilan(${i})">Edit</button>
+          <button onclick="deleteCicilan(${i})">Hapus</button>
+        `;
+      });
+    }
+
+    async function updateDebt() {
+      const pinjaman = Number(document.getElementById('jumlahPinjaman').value);
+      const tenor = Number(document.getElementById('jumlahTenor').value);
+
+      const updatedDebt = { ...debt, jumlahPinjaman: pinjaman, jumlahTenor: tenor };
+
+      await fetch(`/api/debts/${nama}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDebt)
+      });
+      alert('Debt berhasil diupdate');
+      loadDebt();
+    }
+
+    async function addCicilan() {
+      const tanggal = document.getElementById('cicilanTanggal').value;
+      const jumlah = Number(document.getElementById('cicilanJumlah').value);
+      if (!tanggal || !jumlah) {
+        alert('Semua field cicilan harus diisi!');
+        return;
+      }
+      debt.cicilan.push({ tanggal, jumlah });
+      await fetch(`/api/debts/${nama}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(debt)
+      });
+      document.getElementById('cicilanTanggal').value = '';
+      document.getElementById('cicilanJumlah').value = '';
+      loadCicilan();
+    }
+
+    async function editCicilan(index) {
+      const c = debt.cicilan[index];
+      const newTanggal = prompt('Tanggal Cicilan:', c.tanggal);
+      const newJumlah = prompt('Jumlah Cicilan:', c.jumlah);
+      if (!newTanggal || !newJumlah) return;
+      debt.cicilan[index] = { tanggal: newTanggal, jumlah: Number(newJumlah) };
+      await fetch(`/api/debts/${nama}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(debt)
+      });
+      loadCicilan();
+    }
+
+    async function deleteCicilan(index) {
+      if (!confirm('Hapus cicilan ini?')) return;
+      debt.cicilan.splice(index, 1);
+      await fetch(`/api/debts/${nama}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(debt)
+      });
+      loadCicilan();
+    }
+
+    loadDebt();
+  </script>
+</body>
+</html>

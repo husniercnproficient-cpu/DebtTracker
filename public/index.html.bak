@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DebtTracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    button { padding: 5px; margin: 2px; }
+    .cicilan { display: none; margin-left: 20px; }
+    h2 { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>DebtTracker</h1>
+  <a href="add.html"><button>Tambah Debt Baru</button></a>
+  <div id="debtContainer"></div>
+
+  <script>
+    async function loadData() {
+      const response = await fetch('/api/debts');
+      const debts = await response.json();
+      const container = document.getElementById('debtContainer');
+      container.innerHTML = '';
+
+      debts.forEach(debt => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <h2>${debt.namaAplikasi}</h2>
+          <p>Jumlah Pinjaman: Rp ${debt.jumlahPinjaman.toLocaleString()}</p>
+          <p>Jumlah Tenor: ${debt.jumlahTenor}</p>
+          <button onclick="toggleCicilan('${debt.namaAplikasi}')">Tampilkan Cicilan</button>
+          <a href="edit.html?nama=${encodeURIComponent(debt.namaAplikasi)}"><button>Edit Debt & Cicilan</button></a>
+          <button onclick="deleteDebt('${debt.namaAplikasi}')">Hapus Debt</button>
+          <div id="cicilan-${debt.namaAplikasi}" class="cicilan">
+            <table>
+              <tr><th>Tanggal</th><th>Jumlah</th></tr>
+              ${debt.cicilan.map(c => `
+                <tr>
+                  <td>${c.tanggal}</td>
+                  <td>Rp ${c.jumlah.toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleCicilan(nama) {
+      const div = document.getElementById(`cicilan-${nama}`);
+      div.style.display = div.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function deleteDebt(nama) {
+      if (!confirm(`Hapus debt "${nama}"?`)) return;
+      await fetch(`/api/debts/${nama}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

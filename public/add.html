@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tambah Debt</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    input, button { padding: 5px; margin: 2px; }
+    .form-group { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Tambah Debt Baru</h1>
+  <div class="form-group">
+    <input type="text" id="namaAplikasi" placeholder="Nama Aplikasi" />
+  </div>
+  <div class="form-group">
+    <input type="number" id="jumlahPinjaman" placeholder="Jumlah Pinjaman" />
+  </div>
+  <div class="form-group">
+    <input type="number" id="jumlahTenor" placeholder="Jumlah Tenor" />
+  </div>
+  <button onclick="addDebt()">Tambah Debt</button>
+  <a href="index.html"><button>Kembali</button></a>
+
+  <script>
+    async function addDebt() {
+      const nama = document.getElementById('namaAplikasi').value.trim();
+      const pinjaman = Number(document.getElementById('jumlahPinjaman').value);
+      const tenor = Number(document.getElementById('jumlahTenor').value);
+
+      if (!nama || !pinjaman || !tenor) {
+        alert('Semua field harus diisi!');
+        return;
+      }
+
+      const newDebt = {
+        namaAplikasi: nama,
+        jumlahPinjaman: pinjaman,
+        jumlahTenor: tenor,
+        cicilan: []
+      };
+
+      const res = await fetch('/api/debts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDebt)
+      });
+
+      if (res.ok) {
+        alert('Debt berhasil ditambahkan');
+        window.location.href = 'index.html';
+      } else {
+        const err = await res.json();
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>
